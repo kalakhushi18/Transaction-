@@ -10,7 +10,7 @@ import com.capg.entity.Account;
 @Repository
 public interface AccountRepository extends CrudRepository<Account, Integer>
 {
-  Account findByaccountsNumber(BigInteger id);
+  Account findByaccountsNumber(String id);
 
 }
 	

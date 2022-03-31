@@ -1,14 +1,20 @@
 package com.capg.controller;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.util.Optional;
+import java.util.Map;
 
 import org.apache.el.util.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,111 +23,98 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.capg.entity.Account;
 import com.capg.entity.Transaction;
+import com.capg.exceptions.TransferException;
+import com.capg.functions.ImpFunctions;
 import com.capg.repositroy.AccountRepository;
 import com.capg.repositroy.TransactionRepository;
-import java.time.Instant;  
+import com.capg.validator.AccountValidator;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Controller
 @RequestMapping("/transfer")
 public class TransactionController {
 
-	   @Autowired
-	   private TransactionRepository transactionRepository;
-	   
-	   @Autowired
-	   private AccountRepository accountRepository ; 
-	   Timestamp instant ; 
-	   Transaction  tran = null ; 
-	   
-	   
-	   @PostMapping("/detail")
-	   public ResponseEntity<Transaction>  createStudent(@RequestBody Transaction transaction ) {
+	@Autowired
+	private TransactionRepository transactionRepository;
+
+	@Autowired
+	private AccountRepository accountRepository;
+
+	private AccountValidator accountValidator;
+	
+	Account a , b ;
+	
+	double updatedBalanceA , updatedBalanceB ,amount ; 
+
+	LocalDateTime instant;
+	ImpFunctions function ;
+	Transaction tran;
+
+	@PostMapping("/detail")
+	   public ResponseEntity<Transaction>  transferAmt(@RequestBody Transaction transaction  )throws TransferException{
 		   
-		   BigInteger transactionFrom = transaction.getTransactionFrom() ; 
-		   BigInteger transactionTo = transaction.getTransactionTo() ; 
-	        double amount = transaction.getTransactionAmount() ; 
-	        instant= Timestamp.from(Instant.now());
-	        BigInt
+		   String transactionFrom = transaction.getTransactionFrom() ; 
+		   String transactionTo = transaction.getTransactionTo() ; 
+		   String transactionFromType = transaction.getTransactionFromType();
+		   String transactionToType = transaction.getTransactionToType();
+		   amount = transaction.getTransactionAmount() ; 
+            
+		   accountValidator = new AccountValidator();
 	        
-	        if(isValidAccountNo(transactionFrom, transactionTo) && isValidAmt(amount)) 
-	        {
-	        	  Account a = accountRepository.findByaccountsNumber(transactionFrom);
-		          Account b = accountRepository.findByaccountsNumber(transactionTo);
-		          if(a!=null && b!=null) 
-		          {
-	        	  boolean existsFirst = accountRepository.existsById(a.getAccountId());
-	        	  boolean existsSecond = accountRepository.existsById(b.getAccountId());
-	        	  if(existsFirst && existsSecond)
-	        	  {
-			        		
-			           if(amount <= a.getAccountsBalance())
-						{
-							double updatedBalanceA = a.getAccountsBalance() - amount;
-							double updatedBalanceB = b.getAccountsBalance() + amount;
-							a.setAccountsBalance(updatedBalanceA);
-							b.setAccountsBalance(updatedBalanceB);
-							   
-					        transaction.setTransactionDate(instant);
-							
-							System.out.println("Amt tranferred ");
-							
-						    tran = transactionRepository.save(transaction);
-							accountRepository.save(a);
-						    accountRepository.save(b);
-						    return new ResponseEntity<Transaction>(tran, HttpStatus.CREATED);
-						}
-						else 
-						{
-							System.out.println("Not enough Balance available");
-							return new ResponseEntity<Transaction>(tran, HttpStatus.FORBIDDEN) ; 
-						}
-	        	  }
-	        	  else 
-	        	  {
-	        		  System.out.println("Account number not available");
-	        		  return new ResponseEntity<Transaction>(tran, HttpStatus.FORBIDDEN) ; 
-	        	  }
-	        }
-		          else 
-		          {
-		        	  System.out.println("Account number not available");
-	        		  return new ResponseEntity<Transaction>(tran, HttpStatus.FORBIDDEN) ; 
-		          }
-	        }
-	        else
-	        {
-	        	System.out.println("Input is invalid ");
-      		  return new ResponseEntity<Transaction>(tran, HttpStatus.FORBIDDEN) ;
-	        }
-	        
-	     }
-	 
-	   @PostMapping("/deposit")
-	   public ResponseEntity<Transaction>  createStudent(@RequestBody Account account ) 
-	   {
-		   BigInteger accNumber = account.getAccountsNumber();
-		   String accType = account.getAccountsType();
-//		   double amountDeposit = 
-		   return new ResponseEntity<Transaction>(tran, HttpStatus.FORBIDDEN) ; 
-	   }
-	   
-	   public Boolean isValidAccountNo(BigInteger accNoFirst , BigInteger accNoSecond)
-	   {
-		   
-		   return true ;
-		   
-	   }
-	   
-	   public Boolean isValidAmt(double amount)
-	   {
-		   if(!Double.isNaN(amount))
-		   {
-			   if(amount >0)
-				 return true ; 
-			   else 
-				  return false ; 
-		   }
-		   else 
-			   return false ; 
-		}
+    if(accountValidator.validateType(transactionFromType , transactionToType) && accountValidator.validateAmount(amount) && accountValidator.validateAccountNumber(transactionFromType, transactionToType))  
+    {
+    	  a = accountRepository.findByaccountsNumber(transactionFrom);
+          b = accountRepository.findByaccountsNumber(transactionTo);
+          
+        if(a!=null && b!=null) 
+         {
+        	   
+           if(a.getAccountsType().equalsIgnoreCase(transactionFromType) && b.getAccountsType().equalsIgnoreCase(transactionToType))
+            {		
+	           if(amount <= a.getAccountsBalance())
+				{
+	        	   function = new ImpFunctions();
+	        	   updateDetails(a,b);
+	        	  
+	        	    String time = function.getTime(instant);
+	        	    
+	                transaction.setTransactionDate( time);
+	      		
+	                 tran = transactionRepository.save(transaction);
+					
+				    return new ResponseEntity<Transaction>(tran, HttpStatus.CREATED);
+				 }
+	           
+				 else 
+				    throw new TransferException("Balance not enough ");
+			  }
+           
+	        else 
+	            throw new TransferException("The account Type doesn't match "); 
+	       }
+          else 
+               throw new TransferException("The account number doesn't exists ");
+    }
+    else
+       throw new TransferException("The input values are invalid");
+ }
+	
+	
+	
+	public void updateDetails(Account first , Account second)
+	{
+		updatedBalanceA = a.getAccountsBalance() - amount;
+		updatedBalanceB = b.getAccountsBalance() + amount;
+		
+		first.setAccountsBalance(updatedBalanceA);
+		second.setAccountsBalance(updatedBalanceB);
+		
+		accountRepository.save(first);
+	    accountRepository.save(second);
+	}
+
 }

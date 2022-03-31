@@ -2,7 +2,10 @@ package com.capg.entity;
 
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -15,27 +18,53 @@ public class Transaction {
 
 	
 	   @Id
-	   @GeneratedValue(strategy = GenerationType.IDENTITY)
+	   @GeneratedValue(strategy = GenerationType.AUTO)
+	   @Column(name = "Transaction_ID")
 	  private int    transactionId ;
+	   @Column(name = "Transfer_Amount")
 	  private double  transactionAmount ;
-	  private Timestamp  transactionDate ;  
+	   @Column(name = "Transaction_Date")
+	  private String  transactionDate ;  
 	   
-	  private BigInteger transactionFrom ; 
-      private BigInteger transactionTo ;
+	   @Column(name = "Transaction_From")
+	  private String transactionFrom ;
+	   @Column(name = "Transaction_TO")
+      private String transactionTo ;
+	   @Column(name = "Transaction_From_Type")
+      private String transactionFromType ; 
+	   @Column(name = "Transaction_To_Type")
+      private String transactionToType ; 
       
-	      public Transaction()
+      
+      
+	    public Transaction(int transactionId, double transactionAmount, String transactionDate, String transactionFrom,
+			String transactionTo, String transactionFromType, String transactionToType) {
+		super();
+		this.transactionId = transactionId;
+		this.transactionAmount = transactionAmount;
+		this.transactionDate = transactionDate;
+		this.transactionFrom = transactionFrom;
+		this.transactionTo = transactionTo;
+		this.transactionFromType = transactionFromType;
+		this.transactionToType = transactionToType;
+	}
+		public String getTransactionFromType() {
+		return transactionFromType;
+	}
+	public void setTransactionFromType(String transactionFromType) {
+		this.transactionFromType = transactionFromType;
+	}
+	public String getTransactionToType() {
+		return transactionToType;
+	}
+	public void setTransactionToType(String transactionToType) {
+		this.transactionToType = transactionToType;
+	}
+		public Transaction()
 	      {
-	    	  
+	    	 super(); 
 	      }
-		public Transaction(int transactionId, double transactionAmount, Timestamp transactionDate, BigInteger transactionFrom,
-				BigInteger transactionTo) {
-			super();
-			this.transactionId = transactionId;
-			this.transactionAmount = transactionAmount;
-			this.transactionDate = transactionDate;
-			this.transactionFrom = transactionFrom;
-			this.transactionTo = transactionTo;
-		}
+	
 		public int getTransactionId() {
 			return transactionId;
 		}
@@ -48,22 +77,22 @@ public class Transaction {
 		public void setTransactionAmount(double transactionAmount) {
 			this.transactionAmount = transactionAmount;
 		}
-		public Timestamp getTransactionDate() {
+		public String getTransactionDate() {
 			return transactionDate;
 		}
-		public void setTransactionDate(Timestamp transactionDate) {
+		public void setTransactionDate(String transactionDate) {
 			this.transactionDate = transactionDate;
 		}
-		public BigInteger getTransactionFrom() {
+		public String getTransactionFrom() {
 			return transactionFrom;
 		}
-		public void setTransactionFrom(BigInteger transactionFrom) {
+		public void setTransactionFrom(String transactionFrom) {
 			this.transactionFrom = transactionFrom;
 		}
-		public BigInteger getTransactionTo() {
+		public String getTransactionTo() {
 			return transactionTo;
 		}
-		public void setTransactionTo(BigInteger transactionTo) {
+		public void setTransactionTo(String transactionTo) {
 			this.transactionTo = transactionTo;
 	} 
 
